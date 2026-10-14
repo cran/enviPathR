@@ -1,0 +1,36 @@
+Package: enviPathR
+Title: Client for the 'enviPath' 'RESTful' API
+Version: 1.0.0
+Authors@R: 
+    c(person(given = "Giulio", family = "Benedetti",
+          role = c("aut", "cre", "cph"),
+          email = "giulio.benedetti@utu.fi",
+          comment = c(ORCID = "0000-0002-8732-7692")))
+Description: 
+    The environmental pathway database ('enviPath') is a key resource for the
+    functional annotation and pathway prediction of microbial communities,
+    providing knowledge on biotransformation pathways along with the chemical
+    reactions and produced compounds. This package enables the programmatic
+    access to 'enviPath' by porting the database 'RESTful' API from R. This
+    includes methods to both retrieve entries and predict pathways for custom
+    compounds.
+biocViews: Software, DataImport, Cheminformatics, Annotation, Pathways,
+        FunctionalPrediction
+Depends: R (>= 4.1.0)
+Imports: BiocParallel, httr2, stats, stringr, tools
+Suggests: BiocStyle, ggraph, httptest2, igraph, knitr, rmarkdown,
+        testthat (>= 3.0.0)
+License: Artistic-2.0
+Encoding: UTF-8
+RoxygenNote: 8.0.0
+URL: https://envipath.github.io/enviPathR/
+BugReports: https://github.com/enviPath/enviPathR/issues
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+NeedsCompilation: no
+Packaged: 2026-10-02 00:57:41 UTC; giulio
+Author: Giulio Benedetti [aut, cre, cph] (ORCID:
+    <https://orcid.org/0000-0002-8732-7692>)
+Maintainer: Giulio Benedetti <giulio.benedetti@utu.fi>
+Repository: CRAN
+Date/Publication: 2026-10-14 15:32:06 UTC

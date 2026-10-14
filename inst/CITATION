@@ -1,0 +1,11 @@
+bibentry(
+  bibtype = "Article",
+  title = "Advancements in biotransformation pathway prediction: enhancements, datasets, and novel functionalities in enviPath",
+  author = c(person("Jasmin", "Hafner"), person("Tim", "Lorsbach"), person("Sebastian", "Schmidt"), person("Liam", "Brydon"), person("Katharina", "Dost"), person("Kunyang", "Zhang"), person("Kathrin", "Fenner"), person("Jörg", "Wicker")),
+  journal = "Journal of Cheminformatics",
+  year = "2024",
+  volume = "16",
+  number = "1",
+  pages = "93",
+  doi = "10.1186/s13321-024-00881-6"
+)

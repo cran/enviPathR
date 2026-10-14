@@ -1,0 +1,384 @@
+---
+title: "enviPathR"
+author:
+  - name: Giulio Benedetti
+    affiliation: University of Turku
+    email: giulio.benedetti@utu.fi
+output:
+    BiocStyle::html_document:
+        fig_height: 7
+        fig_width: 10
+        toc: true
+        toc_float: true
+        toc_depth: 2
+        number_sections: true
+        self_contained: true
+        code_folding: show
+date: "`r doc_date()`"
+package: "`r pkg_ver('enviPathR')`"
+vignette: >
+  %\VignetteIndexEntry{enviPathR: access enviPath and predict pathways from R}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+# Retrieve login credentials
+username <- Sys.getenv("EP_USERNAME")
+password <- Sys.getenv("EP_PASSWORD")
+
+# Check if login credentials exist
+is_active <- nzchar(username) && nzchar(password)
+
+# If login credentials exist
+if( is_active ){
+    # Clear httptest cache
+    unlink(
+        system.file("vignettes/httptest"),
+        recursive = TRUE,
+        force = TRUE
+    )
+}
+
+library(httptest2)
+
+# Redact httptest output
+set_redactor(function (x) {
+    # Remove address prefix
+    x <- httptest2::gsub_response(x, "envipath.org/api/legacy/", "")
+    # Reduce unique identifiers
+    x <- httptest2::gsub_response(x, "/(?:[0-9a-z]+-){2,}[0-9a-z]+/", "_")
+    return(x)
+})
+
+start_vignette("httptest")
+```
+
+## Introduction
+
+enviPath is a biotransformation database and pathway prediction system focusing
+on xenobiotic compounds that exacerbate environmental pollution. Although the
+enviPath resources are accessible via an intuitive website, this approach cannot
+ensure analytical efficiency and reproducibility. For this, enviPath provides
+a RESTful API through which both data retrieval and pathway prediction are
+possible. The current package, enviPathR, offers an R client to the enviPath API
+and thus brings most of its capabilities to R practitioners studying
+environmental pollution and organic contaminant biotransformation.
+
+## Tutorial
+
+This section outlines how to use enviPathR for several different purposes. If
+the client interface feels somewhat familiar, that is because it is inspired by
+[KEGGREST](https://bioconductor.org/packages/release/bioc/html/KEGGREST.html){target="_blank"},
+the R client for the KEGG RESTful API. While enabling all resource look-up and
+pathway prediction functionality, the package currently lacks the API methods
+for object creation and deletion. That can be added upon request (external
+contributions are also welcome).
+
+### Installation
+
+CRAN release version:
+
+```{r install-release, eval = FALSE}
+install.packages("enviPathR")
+```
+
+Beta version:
+
+```{r install-devel, eval = FALSE}
+remotes::install_github("enviPath/enviPathR")
+```
+
+Then, we can import enviPathR and another couple of optional packages used in
+this tutorial.
+
+```{r setup, message = FALSE}
+library(enviPathR)
+library(igraph)
+library(knitr)
+```
+
+All the following methods are further described in the enviPathR
+[function reference](https://envipath.github.io/enviPathR/reference/index.html){target="_blank"}.
+
+### `epTypes`: explore enviPath database structure
+
+enviPath divides its conceptual and biological items into different object
+categories, which can be navigated with `epTypes`.
+
+```{r types}
+types <- epTypes()
+```
+
+The first element of the output contains a vector of object types that can be
+listed and explored with `epList`.
+
+```{r types-listable}
+# View listable object types
+print(types$listable)
+```
+
+The second element is a data frame with the available links between object
+types that can be retrieved with `epLink`.
+
+```{r types-linkable}
+# View linkable object types
+kable(types$linkable)
+```
+
+The graph structure of the database can be visualised by converting the links to
+an igraph object.
+
+```{r types-plot}
+# Convert edges data frame to igraph object
+ep_graph <- graph_from_data_frame(types$linkable)
+
+# Visualise database graph
+plot(ep_graph)
+```
+
+### `epLogin`: log into an enviPath personal account
+
+It is necessary to hold an enviPath account to use the API and thus also
+enviPathR. A free (for academic use) account can be created at the [enviPath
+website](https://envipath.org/){target="_blank"}. The same login credentials can
+then be passed to `epLogin`, which keeps you permanently logged in unless the
+cached package cookies are cleared.
+
+```{r, include = FALSE}
+change_state()
+```
+
+```{r login, eval = is_active}
+# Log into your enviPath account
+epLogin(username, password)
+```
+
+After logging in once, all remaining methods work right out the box.
+
+### `epList`: retrieve lists of objects from enviPath
+
+The available elements for each object type can be explored using `epList`.
+
+```{r list-pkg}
+# List available packages
+pkg_df <- epList("package")
+
+# Select reviewed packages
+to_keep <- pkg_df$reviewStatus == "reviewed"
+pkg_df <- pkg_df[to_keep, ]
+
+# Remove lengthy description
+pkg_df$description <- NULL
+
+# View list of packages
+kable(pkg_df)
+```
+
+By default, objects are listed from all available packages, but objects can be
+listed from a specific package using the argument `pkg`. For example, it is
+possible to retrieve pathways only from the EAWAG-BBD package by providing its
+unique identifier.
+
+```{r list-path}
+# Select desired package
+pkg_name <- "EAWAG-BBD"
+pkg_id <- pkg_df$id[pkg_df$name == pkg_name]
+
+# List pathways from desired package
+path_df <- epList("pathway", pkg = pkg_id)
+
+# View list of pathways
+path_df |>
+    head() |>
+    kable()
+```
+
+Similarly, the other supported enviPath object types can also be explored this
+way (see `epTypes`).
+
+### `epLink`: map between different types of objects
+
+Links between object types can be retrieved with `epLink`, which takes the
+origin and target object types, and optional initial values with the argument
+`init`. The latter is recommended to prevent the search from exploding.
+
+```{r link-one}
+# Define reaction of interest
+rxn_id <- "2b6bbcc5-77f4-4bed-92a9-731cdc978f6a"
+
+# Map desired reaction to related compounds (educts and products)
+rxn2cpd <- epLink("reaction", "compound", init = rxn_id)
+
+# View reaction-to-compound mapping
+kable(rxn2cpd)
+```
+
+Multiple initial values can also be used, so that the output represents a
+many-to-many mapping.
+
+```{r link-many}
+# Select pathways of interest
+path_ids <- path_df$id[1:2]
+
+# Map desired pathways to related compounds (nodes)
+path2cpd <- epLink("pathway", "compound", init = path_ids, pkg = pkg_id)
+
+# View pathway-to-compound mapping
+kable(path2cpd)
+```
+
+Similarly, the other supported enviPath object types can also be linked this
+way (see `epTypes`).
+
+### `epGet`: fetch raw objects from enviPath
+
+It may be useful at times to retrieve raw objects to access their original
+properties. This is done with `epGet`.
+
+```{r get-one}
+# Fetch reaction object
+rxn <- epGet("reaction", rxn_id)
+
+# View part of reaction data
+rxn |>
+    head() |>
+    print()
+```
+
+Multiple initial values can also be input to fetch a list of several different
+objects.
+
+```{r get-many}
+# Fetch multiple pathways
+paths <- epGet("pathway", init = path_ids, pkg = pkg_id)
+
+# View part of pathway data
+paths |>
+    lapply(head) |>
+    print()
+```
+
+It is also possible to extract specific properties from certain object types
+with the argument `property`. These include pathway edges and nodes and compound
+structures.
+
+```{r get-property}
+# Extract node property from pathway objects
+nodes <- epGet("pathway", init = path_ids, pkg = pkg_id, property = "node")
+
+# View nodes
+print(nodes)
+```
+
+### `epModel`: predict compound biotransformation pathways
+
+enviPath provides a set of pre-trained models for chemical fate prediction and
+half-life persistence of both known and unknown compounds given their SMILES
+representation. The available models can be retrieved with `epList`.
+
+```{r model-setting}
+# List available model settings
+set_df <- epList("setting")
+
+# View list
+kable(set_df)
+```
+
+Pathway prediction is performed with `epModel`, which uses the enviFormer model
+by default. The output list contains two data frames representing the nodes
+(compounds) and edges (reactions) of the predicted pathway, respectively.
+
+```{r model-former}
+# Define smiles of interest
+smiles <- "ClC(Cl)=C(Cl)Cl"
+
+# Perform pathway prediction with enviFormer
+former_out <- epModel(smiles)
+
+# View compounds in predicted pathway
+kable(former_out$nodes)
+
+# View reactions in predicted pathway
+kable(former_out$edges)
+```
+
+Different model settings can be specified with the argument `setting`. For
+example, the PEPPER model can be used which also returns half-lime estimates for
+the predicted degradation steps.
+
+```{r model-pepper}
+# Set id for PEPPER model setting
+set_name <- "Global Setting - ECC and App Domain - PEPPER"
+set_id <- set_df$id[set_df$name == set_name]
+
+# Perform pathway prediction with PEPPER
+pepper_out <- epModel(smiles, set_id)
+
+# View compounds in predicted pathway
+kable(pepper_out$nodes)
+
+# View reactions in predicted pathway
+kable(pepper_out$edges)
+```
+
+Remarkably, the output of `epModel` can be directly converted to an igraph
+object and visualised as a pathway graph. Here, the plot function from base R
+is used for simplicity, but the ggraph package is recommended for more advanced graph visualisation.
+
+```{r model-plot}
+# Convert model output to igraph object
+path_graph <- graph_from_data_frame(
+    pepper_out$edges,
+    vertices = pepper_out$nodes
+)
+
+# Visualise predicted pathway
+plot(path_graph)
+```
+
+As mentioned above, ggraph can be used to create more informative visualisations
+including organised layouts and additional aesthetic layers.
+
+```{r model-ggraph, message = FALSE}
+library(ggraph)
+
+ggraph(path_graph, layout = "sugiyama") +
+    geom_edge_link(aes(colour = probability), arrow = arrow(type = "closed")) +
+    geom_node_point(size = 3) +
+    geom_node_text(aes(label = name), vjust = 2) +
+    scale_edge_colour_continuous(limits = c(0, 1), low = "white", high = "red") +
+    theme_graph(base_family = "")
+```
+
+### `epLogout`: log out of an enviPath personal account
+
+When finished, for security remember clearing the login cookies with `epLogout`. If skipped, the next sessions will have access to your enviPath account without
+having to call `epLogin`.
+
+```{r logout, eval = is_active}
+epLogout()
+```
+
+```{r, include = FALSE}
+end_vignette()
+```
+
+## Reproducibility
+
+### Cite enviPathR
+
+```{r citation}
+citation("enviPathR")
+```
+
+### Session info
+
+```{r session-info}
+sessionInfo()
+```
