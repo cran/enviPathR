@@ -67,8 +67,8 @@ plot(ep_graph)
 change_state()
 
 ## ----login, eval = is_active--------------------------------------------------
-# Log into your enviPath account
-epLogin(username, password)
+# # Log into your enviPath account
+# epLogin(username, password)
 
 ## ----list-pkg-----------------------------------------------------------------
 # List available packages
@@ -197,7 +197,7 @@ ggraph(path_graph, layout = "sugiyama") +
     theme_graph(base_family = "")
 
 ## ----logout, eval = is_active-------------------------------------------------
-epLogout()
+# epLogout()
 
 ## ----include = FALSE----------------------------------------------------------
 end_vignette()

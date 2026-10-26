@@ -1,6 +1,6 @@
 Package: enviPathR
 Title: Client for the 'enviPath' 'RESTful' API
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: 
     c(person(given = "Giulio", family = "Benedetti",
           role = c("aut", "cre", "cph"),
@@ -28,9 +28,9 @@ BugReports: https://github.com/enviPath/enviPathR/issues
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2026-10-16 04:17:41 UTC; giulio
+Packaged: 2026-10-26 09:05:11 UTC; giulio
 Author: Giulio Benedetti [aut, cre, cph] (ORCID:
     <https://orcid.org/0000-0002-8732-7692>)
 Maintainer: Giulio Benedetti <giulio.benedetti@utu.fi>
 Repository: CRAN
-Date/Publication: 2026-10-16 07:00:02 UTC
+Date/Publication: 2026-10-26 09:20:02 UTC
